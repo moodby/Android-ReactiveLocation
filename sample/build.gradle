@@ -19,21 +19,48 @@ android {
         versionName project.VERSION_NAME
         versionCode Integer.parseInt(project.VERSION_CODE)
         resValue "string", "API_KEY", getGooglePlayServicesApiKey()
+        applicationId 'app.gramophone.music.develop'
     }
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    signingConfigs {
+        release {
+            def signingPropertiesFile = file('properties/signing/signing.properties')
+            if (signingPropertiesFile.canRead()) {
+                Properties properties = new Properties()
+                properties.load(new FileInputStream(signingPropertiesFile))
+                storeFile file(String.valueOf(properties['keystore']))
+                storePassword String.valueOf(properties['keystore.password'])
+                keyAlias String.valueOf(properties['keyalias'])
+                keyPassword String.valueOf(properties['keypassword'])
+            } else {
+                throw new Exception("Could not read properties/signing/signing.properties!")
+            }
+        }
+
+
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
         }
+        debug {
+            signingConfig signingConfigs.release
+            debuggable true
+            minifyEnabled false
+        }
     }
     lintOptions {
         abortOnError false
     }
+
+
 }
 
 dependencies {

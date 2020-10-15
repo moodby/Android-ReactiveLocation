@@ -2,6 +2,7 @@ apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'maven'
+apply from: rootProject.file("scripts/appVersion.gradle")
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -33,13 +34,32 @@ dependencies {
 }
 
 // Comment this to deploy to local maven repository
-apply from: '../maven_push.gradle'
+//apply from: '../maven_push.gradle'
+// Place it at the end of the file
+buildscript {
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.8.4'
+        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.1'
+    }
+}
+
+if (project.rootProject.file('local.properties').exists()) {
+    apply from: rootProject.file("scripts/libraryInfo.gradle")
+    apply from: rootProject.file("scripts/artifactsSetup.gradle")
+    apply from: rootProject.file("scripts/installSetup.gradle")
+    apply from: rootProject.file("scripts/bintrayGlobalSetup.gradle")
+    apply from: rootProject.file("scripts/mavenNexus.gradle")
+    apply from: rootProject.file("scripts/gitCommitMavenLocal.gradle")
+}
 
 
 //TODO: clean up
 //This is for local maven deployment
 
-//apply plugin: 'maven'
 //uploadArchives {
 //    repositories {
 //        mavenDeployer {

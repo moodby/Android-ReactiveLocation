@@ -1,0 +1,17 @@
+project.afterEvaluate {
+    install.finalizedBy gitCommitMavenLocal
+    install.finalizedBy publishLibPublicationToMavenNexusRepository
+}
+
+task gitCommitMavenLocal(group: "installation") {
+    doLast {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('local.properties').newDataInputStream())
+        def username = properties.getProperty('git.username')
+        def password = properties.getProperty('git.password')
+        def email = properties.getProperty('git.email')
+        File autogitFile = file("/home/nick/.m2/repository/autogit.sh")
+        def proc = "bash ${autogitFile.absolutePath} $username $password $email AfterInstall".execute([], autogitFile.parentFile)
+        proc.waitForProcessOutput(System.out, System.err)
+    }
+}
