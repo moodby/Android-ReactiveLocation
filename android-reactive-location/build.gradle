@@ -50,10 +50,7 @@ buildscript {
 if (project.rootProject.file('local.properties').exists()) {
     apply from: rootProject.file("scripts/libraryInfo.gradle")
     apply from: rootProject.file("scripts/artifactsSetup.gradle")
-    apply from: rootProject.file("scripts/installSetup.gradle")
-    apply from: rootProject.file("scripts/bintrayGlobalSetup.gradle")
     apply from: rootProject.file("scripts/mavenNexus.gradle")
-    apply from: rootProject.file("scripts/gitCommitMavenLocal.gradle")
 }
 
 
