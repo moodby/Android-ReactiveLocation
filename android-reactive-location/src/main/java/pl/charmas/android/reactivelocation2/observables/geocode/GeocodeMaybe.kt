@@ -8,7 +8,6 @@ import io.reactivex.Maybe
 import io.reactivex.MaybeEmitter
 import io.reactivex.MaybeOnSubscribe
 import pl.charmas.android.reactivelocation2.observables.MaybeFactory
-import pl.charmas.android.reactivelocation2.observables.ObservableFactory
 import java.io.IOException
 import java.util.Locale
 
@@ -17,7 +16,7 @@ class GeocodeMaybe private constructor(
     private val locationName: String,
     private val maxResults: Int,
     private val bounds: LatLngBounds? = null,
-    private val locale: Locale
+    private val locale: Locale,
 ) : MaybeOnSubscribe<List<Address>> {
 
     @Throws(Exception::class)
@@ -45,9 +44,10 @@ class GeocodeMaybe private constructor(
                 bounds.southwest.longitude,
                 bounds.northeast.latitude,
                 bounds.northeast.longitude
-            )
+            ) ?: emptyList()
         } else {
             geocoder.getFromLocationName(locationName, maxResults)
+                ?: emptyList()
         }
     }
 
@@ -62,12 +62,11 @@ class GeocodeMaybe private constructor(
             locationName: String,
             maxResults: Int,
             bounds: LatLngBounds? = null,
-            locale: Locale
+            locale: Locale,
         ): Maybe<List<Address>> {
             return factory.create(
                 GeocodeMaybe(ctx, locationName, maxResults, bounds, locale)
             )
         }
     }
-
 }

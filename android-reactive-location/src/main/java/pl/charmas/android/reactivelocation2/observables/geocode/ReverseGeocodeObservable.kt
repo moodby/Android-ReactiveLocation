@@ -26,7 +26,7 @@ class ReverseGeocodeObservable private constructor(
         try {
             val addresses = geoCoder.getFromLocation(latitude, longitude, maxResults)
             if (!emitter.isDisposed) {
-                emitter.onSuccess(addresses)
+                emitter.onSuccess(addresses?: emptyList())
             }
         } catch (e: IOException) {
             // If it's a service not available error try a different approach using google web api

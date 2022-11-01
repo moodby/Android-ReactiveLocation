@@ -4,14 +4,14 @@ apply plugin: 'signing'
 project.afterEvaluate {
     publishing {
         publications {
-            lib(MavenPublication) {
+            release(MavenPublication) {
                 groupId publishedGroupId
                 artifactId artifact
                 version libraryVersion
 
                 if (project.hasProperty("android")) {
                     artifact bundleReleaseAar
-                    artifact androidSourcesJar
+                    artifact androidReleaseSourcesJar
                     artifact androidJavadocsJar
                 } else {
                     artifact jar
@@ -19,31 +19,43 @@ project.afterEvaluate {
                     artifact javadocJar
                 }
 
-                // Add your description here
-                pom.withXml {
-                    def projectTag = asNode()
-                    projectTag.appendNode('name', libraryName)
-                    projectTag.appendNode('description', libraryDescription)
-                    projectTag.appendNode('url', siteUrl)
-                    // Set your license
-                    def licenseTag = projectTag.appendNode('licenses').appendNode('license')
-                    licenseTag.appendNode('name', licenseName)
-                    licenseTag.appendNode('url', licenseUrl)
-                    def developerTag = projectTag.appendNode('developers').appendNode('developer')
-                    developerTag.appendNode('id', developerId)
-                    developerTag.appendNode('name', developerName)
-                    developerTag.appendNode('email', developerEmail)
-                    def scmTag = projectTag.appendNode('scm')
-                    scmTag.appendNode('connection', gitUrl)
-                    scmTag.appendNode('developerConnection', gitUrl)
-                    scmTag.appendNode('url', siteUrl)
-                }
+                pom {
+                    name = libraryName
+                    artifactId = artifact
+                    description = libraryDescription
+                    url = siteUrl
 
+                    licenses {
+                        license {
+                            name = licenseName
+                            url = licenseUrl
+                        }
+                    }
+
+                    developers {
+                        developer {
+                            id = developerId
+                            name = developerName
+                            email = developerEmail
+                        }
+                    }
+
+                    scm {
+                        url = siteUrl
+                        connection = gitUrl
+                        developerConnection = gitUrl
+                    }
+                }
+                //region Add your description here
                 pom.withXml {
                     final dependenciesNode = asNode().appendNode('dependencies')
 
+                    //region declare fun addDependency(dep, scope)
                     ext.addDependency = { Dependency dep, String scope ->
-                        if (dep.group == null || dep.version == null || dep.name == null || dep.name == "unspecified")
+                        if (dep.group == null
+                                || dep.version == null
+                                || dep.name == null
+                                || dep.name == "unspecified")
                             return // ignore invalid dependencies
 
                         final dependencyNode = dependenciesNode.appendNode('dependency')
@@ -67,28 +79,119 @@ project.afterEvaluate {
                             }
                         }
                     }
+                    //endregion
 
-                    // List all "compile" dependencies (for old Gradle)
-                    def compileDependencies = configurations.compile.getAllDependencies()
                     def apiDependencies = configurations.api.getAllDependencies()
                     def implementationDependencies = configurations.implementation.getAllDependencies()
 
                     implementationDependencies.each { dep ->
-                        if (!compileDependencies.contains(dep) && !apiDependencies.contains(dep)) {
+                        if (!apiDependencies.contains(dep)) {
                             addDependency(dep, "runtime")
                         }
                     }
 
-                    compileDependencies.each { dep ->
+                    apiDependencies.each { dep ->
                         addDependency(dep, "compile")
                     }
 
-                    apiDependencies.each { dep ->
-                        if (!compileDependencies.contains(dep)) {
-                            addDependency(dep, "compile")
-                        }
+                }
+                //endregion
+            }
+
+            if (project.hasProperty("android")){
+                /*debug build variant*/
+                debug(MavenPublication) {
+                    groupId publishedGroupId
+                    artifactId artifact
+                    version "$libraryVersion-debug"
+
+                    if (project.hasProperty("android")) {
+                        artifact bundleDebugAar
+                        artifact androidDebugSourcesJar
+                        artifact androidJavadocsJar
+                    } else {
+                        artifact jar
+                        artifact sourcesJar
+                        artifact javadocJar
                     }
 
+                    pom {
+                        name = libraryName
+                        artifactId = artifact
+                        description = libraryDescription
+                        url = siteUrl
+
+                        licenses {
+                            license {
+                                name = licenseName
+                                url = licenseUrl
+                            }
+                        }
+
+                        developers {
+                            developer {
+                                id = developerId
+                                name = developerName
+                                email = developerEmail
+                            }
+                        }
+
+                        scm {
+                            url = siteUrl
+                            connection = gitUrl
+                            developerConnection = gitUrl
+                        }
+                    }
+                    //region Add your description here
+                    pom.withXml {
+                        final dependenciesNode = asNode().appendNode('dependencies')
+
+                        //region declare fun addDependency(dep, scope)
+                        ext.addDependency = { Dependency dep, String scope ->
+                            if (dep.group == null
+                                    || dep.version == null
+                                    || dep.name == null
+                                    || dep.name == "unspecified")
+                                return // ignore invalid dependencies
+
+                            final dependencyNode = dependenciesNode.appendNode('dependency')
+                            dependencyNode.appendNode('groupId', dep.group)
+                            dependencyNode.appendNode('artifactId', dep.name)
+                            dependencyNode.appendNode('version', dep.version)
+                            dependencyNode.appendNode('scope', scope)
+
+                            if (!dep.transitive) {
+                                // If this dependency is transitive, we should force exclude all its dependencies them from the POM
+                                final exclusionNode = dependencyNode.appendNode('exclusions').appendNode('exclusion')
+                                exclusionNode.appendNode('artifactId', '*')
+                                exclusionNode.appendNode('groupId', '*')
+                            } else if (!dep.properties.excludeRules.empty) {
+                                // Otherwise add specified exclude rules
+                                final exclusionsNode = dependencyNode.appendNode('exclusions')
+                                dep.properties.excludeRules.each { ExcludeRule rule ->
+                                    def exclusion = exclusionsNode.appendNode('exclusion')
+                                    exclusion.appendNode('artifactId', rule.module ?: '*')
+                                    exclusion.appendNode('groupId', rule.group ?: '*')
+                                }
+                            }
+                        }
+                        //endregion
+
+                        def apiDependencies = configurations.api.getAllDependencies()
+                        def implementationDependencies = configurations.implementation.getAllDependencies()
+
+                        implementationDependencies.each { dep ->
+                            if (!apiDependencies.contains(dep)) {
+                                addDependency(dep, "runtime")
+                            }
+                        }
+
+                        apiDependencies.each { dep ->
+                            addDependency(dep, "compile")
+                        }
+
+                    }
+                    //endregion
                 }
             }
         }

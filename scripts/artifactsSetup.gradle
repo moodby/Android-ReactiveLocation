@@ -1,7 +1,7 @@
 if (project.hasProperty("android")) {
     //region Android libraries
-    task androidSourcesJar(type: Jar) {
-        archiveClassifier.set('sources')
+    task androidReleaseSourcesJar(type: Jar) {
+        getArchiveClassifier().set('sources')
         from android.sourceSets.main.java.srcDirs//full sources
 //        from android.sourceSets.main.java.sourceFiles//no sources, only /* compiled code */
 
@@ -13,14 +13,20 @@ if (project.hasProperty("android")) {
 
     }
 
+    task androidDebugSourcesJar(type: Jar) {
+        getArchiveClassifier().set('sources')
+        from android.sourceSets.main.java.srcDirs
+    }
+
     task androidJavadocs(type: Javadoc) {
         failOnError = false
         // all the sources of the current module
-        source = android.sourceSets.main.java.srcDirs
+        source = android.sourceSets.main.java.srcDirs//full sources
+//        source = android.sourceSets.main.java.sourceFiles//no sources, only /* compiled code */
         // the Android SDK classpath
         classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
         // all the dependencies classpaths
-        classpath += configurations.compile
+//        classpath += configurations.api
 
         classpath += files("build/generated/source/r/release")
         classpath += files("build/generated/source/buildConfig/release")
@@ -66,23 +72,24 @@ if (project.hasProperty("android")) {
     }
 
     task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-        archiveClassifier.set('javadoc')
+        getArchiveClassifier().set('javadoc')
         from androidJavadocs.destinationDir
     }
 
     artifacts {
-        archives androidSourcesJar
+        archives androidDebugSourcesJar
+        archives androidReleaseSourcesJar
         archives androidJavadocsJar
     }
     //endregion
 } else { // Java libraries
     task sourcesJar(type: Jar, dependsOn: classes) {
-        archiveClassifier.set('sources')
+        getArchiveClassifier().set('sources')
         from sourceSets.main.allSource
     }
 
     task javadocJar(type: Jar, dependsOn: javadoc) {
-        archiveClassifier.set('javadoc')
+        getArchiveClassifier().set('javadoc')
         from javadoc.destinationDir
     }
 

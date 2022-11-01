@@ -17,27 +17,29 @@ import java.lang.ref.WeakReference
 class LocationUpdatesObservableOnSubscribe private constructor(
     private val fusedLocationProviderClient: FusedLocationProviderClient,
     ctx: ObservableContext,
-    private val locationRequest: LocationRequest
+    private val locationRequest: LocationRequest,
 ) : BaseLocationObservableOnSubscribe<Location>(ctx) {
     private var listener: LocationCallback? = null
 
     @SuppressLint("MissingPermission")
     override fun onGoogleApiClientReady(
         apiClient: GoogleApiClient,
-        emitter: ObservableEmitter<in Location>
+        emitter: ObservableEmitter<in Location>,
     ) {
-        listener = LocationUpdatesLocationListener(emitter)
         fusedLocationProviderClient
             .requestLocationUpdates(
                 locationRequest,
-                listener,
+                LocationUpdatesLocationListener(emitter).also {
+                    listener = it
+                },
                 null
             )
     }
 
     override fun onDisposed(locationClient: GoogleApiClient) {
-        if (locationClient.isConnected && listener != null) {
-            fusedLocationProviderClient.removeLocationUpdates(listener)
+        val callback = listener
+        if (locationClient.isConnected && callback != null) {
+            fusedLocationProviderClient.removeLocationUpdates(callback)
         }
     }
 
@@ -46,17 +48,17 @@ class LocationUpdatesObservableOnSubscribe private constructor(
 
         private val weakRef: WeakReference<ObservableEmitter<in Location>> = WeakReference(emitter)
 
-        override fun onLocationResult(locationResult: LocationResult?) {
+        override fun onLocationResult(locationResult: LocationResult) {
             super.onLocationResult(locationResult)
             val observer = weakRef.get()
-            val locations = locationResult?.locations ?: emptyList()
+            val locations = locationResult.locations
             for (item in locations) {
                 if (observer != null && !observer.isDisposed && item != null) {
                     observer.onNext(item)
                 }
             }
 
-            locationResult?.lastLocation?.let {item->
+            locationResult?.lastLocation?.let { item ->
                 if (observer != null && !observer.isDisposed) {
                     observer.onNext(item)
                 }
@@ -69,11 +71,13 @@ class LocationUpdatesObservableOnSubscribe private constructor(
             fusedLocationProviderClient: FusedLocationProviderClient,
             ctx: ObservableContext,
             factory: ObservableFactory,
-            locationRequest: LocationRequest
+            locationRequest: LocationRequest,
         ): Observable<Location> {
             var observable =
                 factory.create(
-                    LocationUpdatesObservableOnSubscribe(fusedLocationProviderClient, ctx, locationRequest)
+                    LocationUpdatesObservableOnSubscribe(fusedLocationProviderClient,
+                        ctx,
+                        locationRequest)
                 )
             val requestedNumberOfUpdates = locationRequest.numUpdates
             if (requestedNumberOfUpdates > 0 && requestedNumberOfUpdates < Int.MAX_VALUE) {

@@ -133,7 +133,7 @@ constructor(
     fun getLastKnownLocationFromProvider(provider: String): Maybe<Location> {
         return Maybe.create<Location> { emitter ->
             val locationListener = object : LocationListener {
-                override fun onLocationChanged(location: Location?) {
+                override fun onLocationChanged(location: Location) {
                     Log.d(TAG, "onLocationChanged: $location")
                     emitter.onSuccessOrComplete(location)
                 }
@@ -142,11 +142,11 @@ constructor(
                     Log.d(TAG, "onStatusChanged: $provider status = $status")
                 }
 
-                override fun onProviderEnabled(provider: String?) {
+                override fun onProviderEnabled(provider: String) {
                     Log.d(TAG, "onProviderEnabled: $provider")
                 }
 
-                override fun onProviderDisabled(provider: String?) {
+                override fun onProviderDisabled(provider: String) {
                     Log.d(TAG, "onProviderDisabled: $provider")
                     if (!emitter.isDisposed)
                         emitter.onError(RuntimeException("onProviderDisabled: $provider"))
@@ -178,12 +178,10 @@ constructor(
     fun getLocationUpdatesFromProvider(provider: String): Observable<Location> {
         return Observable.create<Location> { emitter ->
             val locationListener = object : LocationListener {
-                override fun onLocationChanged(location: Location?) {
+                override fun onLocationChanged(location: Location) {
                     Log.d(TAG, "onLocationChanged: $location")
-                    if (location != null) {
-                        if (!emitter.isDisposed) {
-                            emitter.onNext(location)
-                        }
+                    if (!emitter.isDisposed) {
+                        emitter.onNext(location)
                     }
                 }
 
@@ -191,11 +189,11 @@ constructor(
                     Log.d(TAG, "onStatusChanged: $provider status = $status")
                 }
 
-                override fun onProviderEnabled(provider: String?) {
+                override fun onProviderEnabled(provider: String) {
                     Log.d(TAG, "onProviderEnabled: $provider")
                 }
 
-                override fun onProviderDisabled(provider: String?) {
+                override fun onProviderDisabled(provider: String) {
                     Log.d(TAG, "onProviderDisabled: $provider")
                 }
             }
